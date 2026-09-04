@@ -14,7 +14,7 @@ pipeline {
     stages {
         stage('git checkout') {
             steps {
-                git branch: 'master', url: 'https://github.com/ygminds73/Ekart.git'
+                git branch: 'master', url: 'https://github.com/rameshwarsangewar/Ekart.git'
             }
         }
 
