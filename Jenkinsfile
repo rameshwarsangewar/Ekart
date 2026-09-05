@@ -7,7 +7,7 @@ pipeline {
 
     tools {
         maven 'maven3'
-        jdk 'jdk-17'
+        jdk 'jdk-8'
     }
 
     stages {
@@ -21,7 +21,7 @@ pipeline {
 
         stage('compile') {
             steps {
-                sh 'mvn compile'
+                sh 'mvn clean compile'
             }
         }
 
@@ -70,7 +70,7 @@ pipeline {
             steps {
                 withMaven(
                     globalMavenSettingsConfig: 'global-maven',
-                    jdk: 'jdk-17',
+                    jdk: 'jdk-8',
                     maven: 'maven3',
                     mavenSettingsConfig: '',
                     traceability: true
@@ -82,7 +82,11 @@ pipeline {
 
         stage('build and Tag docker image') {
             steps {
-                sh 'docker build -t youngminds73/ekart:latest -f docker/Dockerfile .'
+                sh '''
+                    docker build \
+                    -t youngminds73/ekart:latest \
+                    -f docker/Dockerfile .
+                '''
             }
         }
 
@@ -91,26 +95,50 @@ pipeline {
                 withCredentials([
                     string(
                         credentialsId: 'dockerhub-pwd',
-                        variable: 'dockerhubpwd'
+                        variable: 'DOCKERHUB_PASSWORD'
                     )
                 ]) {
-                    sh 'docker login -u youngminds73 -p "$dockerhubpwd"'
-                    sh 'docker push youngminds73/ekart:latest'
+                    sh '''
+                        echo "$DOCKERHUB_PASSWORD" | docker login \
+                        -u youngminds73 \
+                        --password-stdin
+
+                        docker push youngminds73/ekart:latest
+                    '''
                 }
             }
         }
 
         stage('EKS and Kubectl configuration') {
             steps {
-                sh 'aws eks update-kubeconfig --region ap-south-1 --name project-cluster'
+                sh '''
+                    aws eks update-kubeconfig \
+                    --region ap-south-1 \
+                    --name project-cluster
+                '''
             }
         }
 
         stage('Deploy to k8s') {
             steps {
-                sh 'kubectl apply -f deploymentservice.yml'
+                sh '''
+                    kubectl apply -f deploymentservice.yml
+                '''
             }
         }
     }
-}
 
+    post {
+        success {
+            echo 'CI/CD Pipeline completed successfully!'
+        }
+
+        failure {
+            echo 'CI/CD Pipeline failed. Check the console output for details.'
+        }
+
+        always {
+            echo 'Pipeline execution completed.'
+        }
+    }
+}
