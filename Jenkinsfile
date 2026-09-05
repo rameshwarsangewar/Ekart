@@ -1,4 +1,3 @@
-```groovy
 pipeline {
     agent any
 
@@ -114,15 +113,4 @@ pipeline {
         }
     }
 }
-```
 
-**Important:** In Jenkins, create these credentials with the exact IDs:
-
-```text
-nvd-api-key
-dockerhub-pwd
-```
-
-For `nvd-api-key`, use **Secret text**.
-
-For `dockerhub-pwd`, your current pipeline also expects **Secret text** containing the Docker Hub password/token.
