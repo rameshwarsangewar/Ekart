@@ -4,6 +4,9 @@ pipeline {
         maven 'maven3'
         jdk 'jdk-17'
     }
+    environment {
+        SCANNER_HOME = tool 'sonar-scanner'
+    }
     stages {
         stage('git checkout') {
             steps {
@@ -17,7 +20,7 @@ pipeline {
         }
         stage('unit tests') {
             steps {
-                sh "mvn test -DskipTests=true"
+                sh "mvn test"
             }
         }
         stage('SonarQube analysis') {
@@ -27,6 +30,13 @@ pipeline {
                         -Dsonar.projectKey=EKART \
                         -Dsonar.projectName=EKART \
                         -Dsonar.java.binaries=target/classes'''
+                }
+            }
+        }
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
                 }
             }
         }
@@ -53,7 +63,7 @@ pipeline {
         }
         stage('build and Tag docker image') {
             steps {
-                sh "docker build -t mayur272003/ekart:latest -f docker/Dockerfile ."
+                sh "docker build -t mayur272003/ekart:${BUILD_NUMBER} -t mayur272003/ekart:latest -f docker/Dockerfile ."
             }
         }
         stage('Push image to Hub') {
@@ -61,18 +71,33 @@ pipeline {
                 withCredentials([string(credentialsId: 'dockerhub-pwd', variable: 'dockerhubpwd')]) {
                     sh 'echo $dockerhubpwd | docker login -u mayur272003 --password-stdin'
                 }
+                sh 'docker push mayur272003/ekart:${BUILD_NUMBER}'
                 sh 'docker push mayur272003/ekart:latest'
             }
         }
         stage('EKS and Kubectl configuration') {
             steps {
-                sh 'aws eks update-kubeconfig --region ap-south-1 --name project-cluster'
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-creds']]) {
+                    sh 'aws eks update-kubeconfig --region ap-south-1 --name project-cluster'
+                }
             }
         }
         stage('Deploy to k8s') {
             steps {
-                sh 'kubectl apply -f deploymentservice.yml'
+                sh 'kubectl apply -f deploymentservice.yml -n ekart'
             }
+        }
+    }
+    post {
+        always {
+            sh 'docker logout || true'
+            sh 'docker image prune -f || true'
+        }
+        success {
+            echo 'Pipeline completed successfully.'
+        }
+        failure {
+            echo 'Pipeline failed — check stage logs for details.'
         }
     }
 }
