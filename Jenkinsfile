@@ -68,7 +68,7 @@ pipeline {
         stage('build and Tag docker image') {
             steps {
                 script {
-                        sh "docker build -t Admin1ramu/ekart:latest -f docker/Dockerfile ."
+                        sh "docker build -t admin1ramu/ekart:latest -f docker/Dockerfile ."
                     }
             }
         }
@@ -77,8 +77,8 @@ pipeline {
             steps{
                 script{
                    withCredentials([string(credentialsId: 'dockerhub-pwd', variable: 'dockerhubpwd')]) {
-                   sh 'docker login -u Admin1ramu -p ${dockerhubpwd}'}
-                   sh 'docker push Admin1ramu/ekart:latest'
+                   sh 'docker login -u admin1ramu -p ${dockerhubpwd}'}
+                   sh 'docker push admin1ramu/ekart:latest'
                 }
             }
         }
