@@ -66,22 +66,33 @@ pipeline {
         
 
         stage('build and Tag docker image') {
-            steps {
-                script {
-                        sh "docker build -t admin1ramu/ekart:latest -f docker/Dockerfile ."
-                    }
-            }
+    steps {
+        script {
+            sh "docker build -t admin1ramu/ekart:latest -f docker/Dockerfile ."
         }
+    }
+}
 
-        stage('Push image to Hub'){
-            steps{
-                script{
-                   withCredentials([string(credentialsId: 'dockerhub-pwd', variable: 'dockerhubpwd')]) {
-                   sh 'docker login -u admin1ramu -p ${dockerhubpwd}'}
-                   sh 'docker push admin1ramu/ekart:latest'
-                }
+stage('Push image to Hub') {
+    steps {
+        script {
+            withCredentials([
+                string(
+                    credentialsId: 'dockerhub-pwd',
+                    variable: 'dockerhubpwd'
+                )
+            ]) {
+                sh '''
+                    echo "$dockerhubpwd" | docker login \
+                        -u "Admin1ramu" \
+                        --password-stdin
+
+                    docker push admin1ramu/ekart:latest
+                '''
             }
         }
+    }
+
         stage('EKS and Kubectl configuration'){
             steps{
                 script{
