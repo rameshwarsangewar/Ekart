@@ -86,6 +86,7 @@ pipeline {
         stage('EKS and Kubectl configuration'){
             steps{
                 script{
+                    sh 'aws sts get-caller-identity'
                     sh 'aws eks update-kubeconfig --region ap-south-1 --name project-cluster'
                 }
             }
